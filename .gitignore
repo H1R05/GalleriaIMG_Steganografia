@@ -1,2 +1,17 @@
-# Created by venv; see https://docs.python.org/3/library/venv.html
-*
+# 1. Ambienti Virtuali Python (Pesantissimi, non vanno mai su GitHub)
+.venv/
+venv/
+env/
+
+# 2. File "spazzatura" compilati da Python automaticamente
+__pycache__/
+*.pyc
+*.pyo
+
+# 3. File nascosti del Sistema Operativo (Windows/Mac)
+.DS_Store
+Thumbs.db
+
+# 4. IL PIÙ IMPORTANTE: File delle variabili segrete (Password, JWT Secret)
+.env
+secret.txt

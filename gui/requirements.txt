@@ -1,0 +1,4 @@
+## `requirements.txt` – Pulito ed essenziale`
+ttkbootstrap
+Pillow
+stegano
