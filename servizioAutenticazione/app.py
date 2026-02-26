@@ -1,10 +1,16 @@
 import jwt
 import flask
+import pymongo
 
 
 app = flask.Flask(__name__)
 
-app.config['SECRET_KEY'] = "aperturaFrancese"
+app.config['SECRET_KEY'] = "segreto_123"
+client = pymongo.MongoClient("mongodb://mongodb:27017/")
+
+db = client["GalleriaImg"]
+col = db["utenti"]
+
 def token_required(func):
     def decorated(*args, **kwargs):
         token = flask.request.args.get('token')
@@ -19,20 +25,29 @@ def token_required(func):
     return decorated
 
 
-@app.route('/private')
-@token_required
-def auth():
-    return 'Token JWT verificato correttamente, benvenuto nella pagina privata!!!'
 
-@app.route('/login', methods=['GET'])
+@app.route('/login', methods=['POST'])
 def login():
-    print("entrato")
-    if flask.request.args.get("username") == "samuele" and \
-            flask.request.args.get("password") == "123456":
-        flask.session['logged_in'] = True
+    dati_ricevuti = flask.request.get_json()
+    print(dati_ricevuti)
+    if not dati_ricevuti:
+        return flask.jsonify({"messaggio": "Nessun dato fornito"}), 400
+
+    username = dati_ricevuti["username"]
+    password = dati_ricevuti["password"]
+
+    utente_trovato = col.find_one({
+            "utente.username":username,
+            "utente.password":password
+    })
+
+    if utente_trovato:
         token = jwt.encode({
-            'user': flask.request.args.get('username')
+            'user': username
         }, app.config['SECRET_KEY'], algorithm="HS256")
-        return flask.jsonify({'token': token})
+        return flask.jsonify({'token': token}), 200
     else:
-        return flask.jsonify({"messaggio": "Errore di autenticazione"}), 401
+        return flask.jsonify({"messaggio": "Username o Password errati"}), 401
+    
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000)

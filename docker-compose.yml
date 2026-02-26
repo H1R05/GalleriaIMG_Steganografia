@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  # 1. IL NOSTRO DATABASE MONGODB
+  mongodb:
+    image: mongo:latest
+    container_name: database_mongo
+    ports:
+      - "27017:27017"
+    # I volumi servono a non perdere i dati quando spegniamo il container
+    volumes:
+      - dati_mongo:/data/db
+
+  # 2. IL NOSTRO SERVIZIO DI AUTENTICAZIONE
+  auth_api:
+    build: ./servizioAutenticazione
+    container_name: api_login
+    ports:
+      - "5000:5000"
+    # Diciamo a Docker di accendere l'API solo DOPO aver acceso il database
+    depends_on:
+      - mongodb
+
+# Dichiariamo lo spazio di archiviazione persistente per il database
+volumes:
+  dati_mongo:

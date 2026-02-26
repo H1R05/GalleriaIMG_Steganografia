@@ -1241,7 +1241,7 @@ class FinestraLogin(ttk.Toplevel):
         try:
             # Ricordi? Il professore ha usato methods=['GET'], quindi usiamo requests.get
             # Il parametro 'timeout=3' è vitale per un DevOps: se il server non risponde in 3 secondi, annulla tutto.
-            risposta = req.get(url_server, params=dati_da_inviare, timeout=3)
+            risposta = req.post(url_server, json=dati_da_inviare, timeout=3)
 
             # 4. Leggiamo la risposta
             if risposta.status_code == 200:
@@ -1249,7 +1249,7 @@ class FinestraLogin(ttk.Toplevel):
                 dati_json = risposta.json()
                 self.master.token_acquisito = dati_json.get("token")
                 
-                messagebox.showinfo("Successo", "Autenticazione riuscita!")
+                # messagebox.showinfo("Successo", "Autenticazione riuscita!")
 
                 self.master.deiconify()
                 
@@ -1264,7 +1264,7 @@ class FinestraLogin(ttk.Toplevel):
         except req.exceptions.Timeout:
              messagebox.showerror("Errore di Rete", "Il server ci sta mettendo troppo tempo a rispondere.")
         finally:
-            # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattiviamo il bottone
+            # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattiviamo il bottoneccendere il servizio)
             if self.winfo_exists():
                 self.btn_accedi.config(text="Accedi", state=tk.NORMAL)
 
