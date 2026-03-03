@@ -1,31 +1,30 @@
 import tkinter as tk
-from tkinter import ttk
-from ttkbootstrap.constants import *
+import ttkbootstrap as ttk
+#Importiamo il mattoncino che abbiamo creato nell'altro file!
+from login import PannelloLogin
+from vista_galleria import PannelloGalleria
 
-# IMPORTANTE: Importiamo il mattoncino che abbiamo creato nell'altro file!
-from login import FinestraLogin
-
-class FinestraPrincipale(tk.Tk):
+class ApplicazionePrincipale(tk.Tk):
     def __init__(self):
         super().__init__()
-        self.title("Architettura Modulare DevOps")
+        self.title("Galleria Immagini")
         self.geometry("460x350")
         self.token_acquisito = None
 
-        # 1. Istanziamo (creiamo) il nostro mattoncino Login.
-        # Passiamo 'self' come argomento, dicendogli: "Io sono il tuo master (genitore)"
-        self.vista_login = FinestraLogin(self)
-        self.vista_login.pack(expand=True, fill="both")
+        # Passo 'self' come argomento, dicendogli: "Io sono il tuo master (genitore)"
+        self.panello_login = PannelloLogin(self)
+        self.panello_login.pack(expand=True, fill="both")
 
     def login_completato(self):
-        self.vista_login.pack_forget()
+        """Viene innescato quando riceve il token 200"""
+        self.panello_login.pack_forget()
 
-        print("Login effettuato!")
+        print(f"Login effettuato!token: {self.token_acquisito}")
 
-        label_temporanera = ttk.Label(self, text="Benvenuto", font=("Arial", 16), justify=tk.CENTER)
-        label_temporanera.pack(expand=True)
+        self.pannello_galleria = PannelloGalleria(self)
+        self.pannello_galleria.pack(fill=tk.BOTH, expand=True)
 
 # Il blocco di esecuzione standard
 if __name__ == "__main__":
-    app = FinestraPrincipale()
+    app = ApplicazionePrincipale()
     app.mainloop()
