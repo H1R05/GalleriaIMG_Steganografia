@@ -8,7 +8,10 @@ class ApplicazionePrincipale(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Galleria Immagini")
-        self.geometry("900x800")
+        self.style = ttk.Style()
+        self.style.theme_use("darkly")
+        self.geometry("1100x800")
+        self.minsize(1100, 800)
         self.token_acquisito = None
 
         # Passo 'self' come argomento, dicendogli: "Io sono il tuo master (genitore)"
