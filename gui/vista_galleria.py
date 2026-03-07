@@ -7,7 +7,7 @@ import sys
 from PIL import Image, ImageTk
 from stegano import lsb
 
-from rilevazioneYolo import esegui_rilevamento_yolo_locale
+from rilevazioneYolo import esegui_rilevamento_yolo_locale, richiedi_immagini_server
 
 class PannelloGalleria(ttk.Frame):
     # --- COSTANTI DI CLASSE ---
@@ -599,13 +599,12 @@ class PannelloGalleria(ttk.Frame):
             self.barra_stato.config(text=" 🔴 Errore durante l'estrazione.", bootstyle="inverse-danger")
             self.after(3000, self._ripristina_barra_stato)
 
-   # ==========================================
+    # ==========================================
     # --- 7. LOGICA DI RILEVAMENTO E RETE ---
     # ==========================================
-    
-    # --- PARTE A: YOLO LOCALE (EDGE COMPUTING) ---
+    # --- PARTE A: YOLO LOCALE ---
     def avvia_chiamata_yolo(self):
-        """Prepara l'interfaccia e avvia il motore YOLO in locale."""
+        """Avvia l'analisi visiva della foto usando l'IA locale."""
         if not hasattr(self, 'indice_corrente') or self.indice_corrente is None:
             messagebox.showwarning("Attenzione", "Seleziona prima un'immagine da analizzare.")
             return
@@ -615,93 +614,71 @@ class PannelloGalleria(ttk.Frame):
         self.btn_invia_server.config(text="⏳ Analisi IA in corso...", state=tk.DISABLED)
         self.barra_stato.config(text=" 🧠 Rilevamento YOLO locale in corso...", bootstyle="inverse-warning")
         
-        # Deleghiamo il calcolo pesante al client API separato
-        from client_api import esegui_rilevamento_yolo_locale
+        # Deleghiamo il lavoro al file esterno
         esegui_rilevamento_yolo_locale(img_path, self._ricevi_risposta_yolo)
 
     def _ricevi_risposta_yolo(self, messaggio_esito, bootstyle_stato, etichetta_dominante):
-        """Callback richiamata quando YOLO ha finito."""
+        """Metodo chiamato automaticamente alla fine dell'analisi YOLO."""
         self.after(0, lambda: self._gestisci_flusso_post_rilevamento(messaggio_esito, bootstyle_stato, etichetta_dominante))
 
     def _gestisci_flusso_post_rilevamento(self, messaggio_esito, bootstyle_stato, etichetta_dominante):
-        """Gestisce l'esito di YOLO e innesca la ricerca sul server dei Metadati."""
+        """Aggiorna la GUI e, se trova un oggetto, interroga automaticamente il server."""
         self.btn_invia_server.config(text="Esegui Rilevamento YOLO", state=tk.NORMAL)
         self.barra_stato.config(text=f" {messaggio_esito}", bootstyle=bootstyle_stato)
         
         if etichetta_dominante:
-            messagebox.showinfo("Rilevamento Completato", f"Oggetto principale: {etichetta_dominante}.\n\nOra il sistema interrogherà il server per trovare immagini simili.")
-            # IL PASSAGGIO DEL TESTIMONE: Chiamiamo la funzione GET passando l'etichetta
+            messagebox.showinfo("Rilevamento Completato", f"Oggetto principale: {etichetta_dominante}.\n\nOra il sistema cercherà immagini simili sul server.")
+            # Chiamata automatica al server!
             self.avvia_fetch_immagini(termine_ricerca=etichetta_dominante)
         elif "Errore" in messaggio_esito:
-            messagebox.showerror("Errore IA Locale", messaggio_esito)
-        else:
-            messagebox.showinfo("Nessun Oggetto", "L'IA non ha riconosciuto oggetti noti.")
+            messagebox.showerror("Errore IA", messaggio_esito)
             
         self.after(5000, self._ripristina_barra_stato)
 
-    # --- PARTE B: COMUNICAZIONE COL SERVER METADATI ---
+
+    # --- PARTE B: CHIAMATA AL SERVER METADATI ---
     def avvia_fetch_immagini(self, termine_ricerca=None):
-        """Richiede al server le immagini, filtrando per etichetta se presente."""
+        """Delega la richiesta HTTP al client API esterno."""
         token = getattr(self.app_principale, "token_jwt", None)
         
         if not token:
             messagebox.showerror("Accesso Negato", "Devi effettuare l'accesso per visualizzare i file del server.")
             return
 
+        # Prepariamo la grafica
         self.lista_immagini_server.delete(0, tk.END)
         self.lista_immagini_server.insert(tk.END, "In attesa di risposta dal server...")
         self.btn_fetch_immagini.config(state=tk.DISABLED)
-        self.barra_stato.config(text=" 📡 Richiesta lista immagini in corso...", bootstyle="inverse-info")
+        self.barra_stato.config(text=" 📡 Richiesta dati al server...", bootstyle="inverse-info")
 
-        thread_get = threading.Thread(target=self._worker_get_immagini, args=(token, termine_ricerca))
-        thread_get.daemon = True
-        thread_get.start()
+        # Deleghiamo il lavoro di rete al file esterno!
+        richiedi_immagini_server(token, termine_ricerca, self._ricevi_lista_server)
 
-    def _worker_get_immagini(self, token, termine_ricerca):
-        """Esegue la chiamata GET HTTP al microservizio Metadati."""
-        if termine_ricerca:
-            url_flask = f"http://127.0.0.1:5001/api/images?label={termine_ricerca}"
-        else:
-            url_flask = "http://127.0.0.1:5001/api/images"
-            
-        headers = {"Authorization": f"Bearer {token}"}
+    def _ricevi_lista_server(self, successo, dati_restituiti):
+        """Metodo chiamato automaticamente alla fine della richiesta HTTP."""
+        self.after(0, lambda: self._gestisci_risposta_server(successo, dati_restituiti))
 
-        try:
-            risposta = requests.get(url_flask, headers=headers, timeout=5)
-
-            if risposta.status_code == 200:
-                dati = risposta.json()
-                lista_file = dati.get("images", [])
-                self.after(0, lambda: self._popola_lista_server(lista_file))
-            else:
-                errore = f"Errore {risposta.status_code}: Impossibile scaricare la lista."
-                self.after(0, lambda: self._errore_fetch_server(errore))
-
-        except Exception as e:
-            self.after(0, lambda: self._errore_fetch_server(f"Errore di connessione: {str(e)}"))
-
-    def _popola_lista_server(self, lista_file):
-        """Aggiorna la Listbox con i risultati ricevuti da Flask."""
+    def _gestisci_risposta_server(self, successo, dati_restituiti):
+        """Aggiorna la grafica della Listbox a seconda dell'esito."""
         self.lista_immagini_server.delete(0, tk.END) 
         self.btn_fetch_immagini.config(state=tk.NORMAL)
         
-        if not lista_file:
-            self.lista_immagini_server.insert(tk.END, "Nessuna immagine trovata sul server.")
-            self.barra_stato.config(text=" ✅ Sincronizzazione completata (Vuoto).", bootstyle="inverse-success")
+        if successo:
+            lista_file = dati_restituiti
+            if not lista_file:
+                self.lista_immagini_server.insert(tk.END, "Nessuna immagine trovata sul server per questa ricerca.")
+                self.barra_stato.config(text=" ✅ Ricerca completata (Nessun risultato).", bootstyle="inverse-success")
+            else:
+                for file in lista_file:
+                    self.lista_immagini_server.insert(tk.END, f"📄 {file}")
+                self.barra_stato.config(text=f" ✅ Sincronizzazione completata: {len(lista_file)} file trovati.", bootstyle="inverse-success")
         else:
-            for file in lista_file:
-                self.lista_immagini_server.insert(tk.END, f"📄 {file}")
-            self.barra_stato.config(text=f" ✅ Sincronizzazione completata: {len(lista_file)} file.", bootstyle="inverse-success")
+            # In caso di errore, dati_restituiti contiene il messaggio di errore
+            errore = dati_restituiti
+            self.lista_immagini_server.insert(tk.END, errore)
+            self.barra_stato.config(text=" 🔴 Errore di connessione al server.", bootstyle="inverse-danger")
             
-        self.after(3000, self._ripristina_barra_stato)
-
-    def _errore_fetch_server(self, messaggio_errore):
-        """Gestisce errori di rete nel tab del server."""
-        self.lista_immagini_server.delete(0, tk.END)
-        self.lista_immagini_server.insert(tk.END, messaggio_errore)
-        self.btn_fetch_immagini.config(state=tk.NORMAL)
-        self.barra_stato.config(text=" 🔴 Errore di sincronizzazione.", bootstyle="inverse-danger")
-        self.after(3000, self._ripristina_barra_stato)
+        self.after(4000, self._ripristina_barra_stato)
 
     # ==========================================
     # --- 8. FUNZIONI DI SUPPORTO ---

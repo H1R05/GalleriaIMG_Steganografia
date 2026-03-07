@@ -1,16 +1,15 @@
 import threading
+import requests
 from ultralytics import YOLO
 
+# ==========================================
+# 1. MOTORE IA LOCALE (Edge Computing)
+# ==========================================
 def esegui_rilevamento_yolo_locale(image_path, callback_aggiornamento_ui):
-    """
-    Esegue YOLO in locale (Edge Computing) senza chiamate di rete.
-    """
+    """Esegue YOLO in locale senza chiamate di rete."""
     def worker():
         try:
-            # Carica il modello localmente (lo scarica la prima volta se non c'è)
             model = YOLO("yolov8n.pt") 
-            
-            # Esegue l'analisi locale
             risultati = model(image_path)
             
             oggetti_trovati = []
@@ -21,23 +20,56 @@ def esegui_rilevamento_yolo_locale(image_path, callback_aggiornamento_ui):
             
             if not oggetti_trovati:
                 esito = "Nessun oggetto riconosciuto dall'IA."
-                colore_stato = "inverse-warning"
-                etichetta_dominante = None
+                callback_aggiornamento_ui(esito, "inverse-warning", None)
             else:
-                # Estraiamo la prima etichetta trovata (es. "car" o "person")
                 etichetta_dominante = oggetti_trovati[0] 
                 esito = f"✅ Trovati: {', '.join(oggetti_trovati)}"
-                colore_stato = "inverse-success"
+                callback_aggiornamento_ui(esito, "inverse-success", etichetta_dominante)
                 
-            # Restituiamo l'esito alla GUI, passando anche l'etichetta dominante
-            # che ci servirà per il Punto 3 del tuo schema!
-            callback_aggiornamento_ui(esito, colore_stato, etichetta_dominante)
-            
         except Exception as e:
-            esito = f"❌ Errore IA locale: {str(e)}"
-            callback_aggiornamento_ui(esito, "inverse-danger", None)
+            callback_aggiornamento_ui(f"❌ Errore IA locale: {str(e)}", "inverse-danger", None)
 
-    # YOLO è pesante per la CPU, usiamo un thread per non bloccare Tkinter
     thread_ia = threading.Thread(target=worker)
     thread_ia.daemon = True
     thread_ia.start()
+
+
+# ==========================================
+# 2. MOTORE DI RETE (Comunicazione con Flask)
+# ==========================================
+def richiedi_immagini_server(token, termine_ricerca, callback_risposta):
+    """
+    Esegue la chiamata GET HTTP al microservizio Metadati.
+    - token: il JWT dell'utente.
+    - termine_ricerca: l'etichetta trovata da YOLO (es. 'car').
+    - callback_risposta: la funzione della GUI a cui restituire la lista o l'errore.
+    """
+    def worker():
+        if termine_ricerca:
+            url_flask = f"http://127.0.0.1:5001/api/images?label={termine_ricerca}"
+        else:
+            url_flask = "http://127.0.0.1:5001/api/images"
+            
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            risposta = requests.get(url_flask, headers=headers, timeout=5)
+
+            if risposta.status_code == 200:
+                dati = risposta.json()
+                lista_file = dati.get("images", [])
+                # Passiamo 'True' per indicare il successo e la lista dei file
+                callback_risposta(True, lista_file)
+            else:
+                errore = f"Errore {risposta.status_code}: Impossibile scaricare la lista."
+                # Passiamo 'False' per indicare l'errore e il messaggio
+                callback_risposta(False, errore)
+
+        except requests.exceptions.ConnectionError:
+            callback_risposta(False, "Errore di connessione: Il server Flask è spento?")
+        except Exception as e:
+            callback_risposta(False, f"Errore di rete: {str(e)}")
+
+    thread_get = threading.Thread(target=worker)
+    thread_get.daemon = True
+    thread_get.start()
