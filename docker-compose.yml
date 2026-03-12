@@ -17,6 +17,19 @@ services:
     depends_on:
       - mongodb
 
+  servizio-metadati:
+    build: ./metadati
+    container_name: server_metadati
+    ports:
+      # Mappiamo la porta 5001 del tuo PC (sinistra) sulla porta 5001 del container (destra)
+      - "5001:5001"
+    volumes:
+      - ./metadati/immagini_server:/app/immagini_server
+    environment:
+      # Passare la chiave segreta da qui è una best practice per la sicurezza
+      - SECRET_KEY=la_tua_chiave_segreta_super_sicura
+
+
 volumes:
   dati_mongo:
 
