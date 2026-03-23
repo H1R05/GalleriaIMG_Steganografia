@@ -27,7 +27,7 @@ services:
       - ./Get_Images/immagini_server:/app/immagini_server
     environment:
       # Passare la chiave segreta da qui è una best practice per la sicurezza
-      - SECRET_KEY=la_tua_chiave_segreta_super_sicura
+      - SECRET_KEY=segreto_123
 
 
 volumes:

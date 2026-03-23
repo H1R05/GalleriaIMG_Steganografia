@@ -35,15 +35,10 @@ def esegui_rilevamento_yolo_locale(image_path, callback_aggiornamento_ui):
 
 
 # ==========================================
-# 2. MOTORE DI RETE (Comunicazione con Flask)
+# 2. MOTORE DI RETE (Ricerca Lista Immagini)
 # ==========================================
 def richiedi_immagini_server(token, termine_ricerca, callback_risposta):
-    """
-    Esegue la chiamata GET HTTP al microservizio Metadati.
-    - token: il JWT dell'utente.
-    - termine_ricerca: l'etichetta trovata da YOLO (es. 'car').
-    - callback_risposta: la funzione della GUI a cui restituire la lista o l'errore.
-    """
+    """Interroga il server Metadati per avere la lista dei file."""
     def worker():
         if termine_ricerca:
             url_flask = f"http://127.0.0.1:5001/api/images?label={termine_ricerca}"
@@ -58,12 +53,9 @@ def richiedi_immagini_server(token, termine_ricerca, callback_risposta):
             if risposta.status_code == 200:
                 dati = risposta.json()
                 lista_file = dati.get("images", [])
-                # Passiamo 'True' per indicare il successo e la lista dei file
                 callback_risposta(True, lista_file)
             else:
-                errore = f"Errore {risposta.status_code}: Impossibile scaricare la lista."
-                # Passiamo 'False' per indicare l'errore e il messaggio
-                callback_risposta(False, errore)
+                callback_risposta(False, f"Errore {risposta.status_code}: {risposta.text}")
 
         except requests.exceptions.ConnectionError:
             callback_risposta(False, "Errore di connessione: Il server Flask è spento?")
@@ -73,3 +65,31 @@ def richiedi_immagini_server(token, termine_ricerca, callback_risposta):
     thread_get = threading.Thread(target=worker)
     thread_get.daemon = True
     thread_get.start()
+
+
+# ==========================================
+# 3. MOTORE DI RETE (Dettagli Singola Immagine)
+# ==========================================
+def richiedi_metadati_immagine(token, nome_file, callback_risposta):
+    """Interroga il server Metadati per avere il JSON di una foto specifica."""
+    def worker():
+        url_flask = f"http://127.0.0.1:5001/api/metadata/{nome_file}"
+        headers = {"Authorization": f"Bearer {token}"}
+
+        try:
+            risposta = requests.get(url_flask, headers=headers, timeout=5)
+
+            if risposta.status_code == 200:
+                dati_json = risposta.json()
+                callback_risposta(True, dati_json)
+            else:
+                callback_risposta(False, f"Errore {risposta.status_code}: {risposta.text}")
+
+        except requests.exceptions.ConnectionError:
+            callback_risposta(False, "Errore di connessione al server Metadati.")
+        except Exception as e:
+            callback_risposta(False, f"Errore imprevisto: {str(e)}")
+
+    thread_meta = threading.Thread(target=worker)
+    thread_meta.daemon = True
+    thread_meta.start()

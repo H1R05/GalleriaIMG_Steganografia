@@ -1,0 +1,15 @@
+# Ignora gli ambienti virtuali Python (il colpevole principale)
+venv/
+.venv/
+env/
+
+# Ignora la cache di Python
+__pycache__/
+*.pyc
+
+# Ignora la cartella locale delle immagini (verrà montata tramite Volume, non va copiata nella build!)
+immagini_server/
+
+# Ignora eventuali file di database o chiavi locali
+*.db
+*.sqlite3

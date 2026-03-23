@@ -10,7 +10,7 @@ app = Flask(__name__)
 # --- 1. CONFIGURAZIONI DI BASE ---
 # ATTENZIONE: Questa chiave deve essere ESATTAMENTE LA STESSA che hai usato 
 # nel container 'servizioAutenticazione' per generare il token!
-SECRET_KEY = "segreto_123" 
+SECRET_KEY = os.environ.get("SECRET_KEY", "chiave_di_riserva_se_docker_fallisce")
 
 # Creiamo una cartella fittizia dove questo server cercherà le immagini
 CARTELLA_IMMAGINI = "./immagini_server"
