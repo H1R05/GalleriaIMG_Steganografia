@@ -20,9 +20,7 @@ class PannelloLogin(ttk.Frame):
 
     def _crea_widget_login(self):
         self.card_login = ttk.Frame(self, padding=40)
-        
         self.card_login.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
 
         ttk.Label(self.card_login, text="Accesso di Sicurezza", font=("Segoe UI", 18, "bold")).pack(pady=(0, 5))
         ttk.Label(self.card_login, text="Inserisci le tue credenziali per continuare", font=("Segoe UI", 10), foreground="gray").pack(pady=(0, 25))
@@ -35,7 +33,9 @@ class PannelloLogin(ttk.Frame):
         self.ent_password = ttk.Entry(self.card_login, width=35, show="*")
         self.ent_password.pack(fill=tk.X, pady=(0, 25))
 
-        self.ent_password.bind("<Return>", lambda e: self._tenta_connessione)
+        # --- CORREZIONE APPLICATA QUI ---
+        # Aggiunte le parentesi tonde per far ESEGUIRE la funzione quando si preme Invio
+        self.ent_password.bind("<Return>", lambda e: self._tenta_connessione())
 
         self.btn_login = ttk.Button(self.card_login, text="Accedi al Sistema", bootstyle="primary", command=self._tenta_connessione)
         self.btn_login.pack(fill=tk.X, pady=(0, 10))
@@ -54,13 +54,14 @@ class PannelloLogin(ttk.Frame):
         self.app_principale.login_completato(None)
 
     def _tenta_connessione(self):
-        """La funzione che scatta quando l'utente preme 'Accedi'."""
+        """La funzione che scatta quando l'utente preme 'Accedi' o il tasto Invio."""
         user = self.ent_username.get()
         pwd = self.ent_password.get()
 
         if not user or not pwd:
             messagebox.showwarning("Attenzione", "Devi inserire sia username che password.")
             return
+            
         url_server = "http://localhost:5000/login"
         dati_da_inviare = {"username": user, "password": pwd}
 
@@ -68,7 +69,7 @@ class PannelloLogin(ttk.Frame):
         self.update_idletasks()
         
         try:
-            # Il parametro 'timeout=3' è : se il server non risponde in 3 secondi, annulla tutto.
+            # Il parametro 'timeout=3' è vitale: se il server non risponde in 3 secondi, annulla tutto.
             risposta = req.post(url_server, json=dati_da_inviare, timeout=3)
 
             if risposta.status_code == 200:
@@ -83,6 +84,6 @@ class PannelloLogin(ttk.Frame):
         except req.exceptions.ConnectionError:
              messagebox.showerror("Errore di Rete", "Impossibile contattare il server.\nHai acceso il container Docker?")
         finally:
-            # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattivo il bottone)
+            # Qualsiasi cosa succeda (successo o errore), se la finestra esiste ancora, riattiva il bottone
             if self.winfo_exists():
-                self.btn_login.config(text="Accedi", state=tk.NORMAL)
+                self.btn_login.config(text="Accedi al Sistema", state=tk.NORMAL)
