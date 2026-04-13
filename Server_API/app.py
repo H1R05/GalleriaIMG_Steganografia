@@ -18,8 +18,8 @@ try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client['galleria_cloud']
     collezione_utenti = db['utenti']
-    collezione_metadati = db['metadati'] # Da popolare MANUALMENTE come da PDF
-    collezione_log = db['log_ricerche']  # Il "Store Data" del PDF
+    collezione_metadati = db['metadati'] # Da popolare manualmente come da PDF
+    collezione_log = db['log_ricerche'] 
 except Exception as e:
     print(f"Errore MongoDB: {e}")
 
