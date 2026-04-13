@@ -2,7 +2,6 @@ import tkinter as tk
 import ttkbootstrap as ttk
 #Importiamo il mattoncino che abbiamo creato nell'altro file!
 from login import PannelloLogin
-from vista_galleria import PannelloGalleria
 
 class ApplicazionePrincipale(tk.Tk):
     def __init__(self):
@@ -20,6 +19,8 @@ class ApplicazionePrincipale(tk.Tk):
 
     def login_completato(self, token_ricevuto):
         """Viene innescato da login.py quando l'accesso ha successo."""
+        # Import differito: evita di caricare subito moduli pesanti all'avvio app.
+        from vista_galleria import PannelloGalleria
         
         # 1. Salviamo il token (nota: token_ricevuto NON ha il self davanti!)
         self.token_jwt = token_ricevuto

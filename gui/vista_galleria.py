@@ -67,6 +67,9 @@ class PannelloGalleria(ttk.Frame):
         self.notebook = ttk.Notebook(main_frame, bootstyle="info")
         self.notebook.pack(fill=tk.BOTH, expand=True, padx=10, pady=(0, 10))
 
+        # Ora che esiste, possiamo agganciargli l'evento!
+        self.notebook.bind("<<NotebookTabChanged>>", self._gestisci_cambio_tab)
+
         # --- TAB LOCALE ---
         self.tab_locale = ttk.Frame(self.notebook)
         self.notebook.add(self.tab_locale, text=" Immagini Locali ")
@@ -678,12 +681,13 @@ class PannelloGalleria(ttk.Frame):
         if not selezione: return
             
         testo_riga = self.lista_immagini_server.get(selezione[0])
-        nome_file = testo_riga.replace("📄 ", "").strip()
+        percorso_relativo_server = testo_riga.replace("📄 ", "").strip()
+        nome_file = os.path.basename(percorso_relativo_server)
         
         token = getattr(self.app_principale, "token_jwt", None)
         if not token: return
 
-        self.barra_stato.config(text=f" 🔍 Recupero dati per {nome_file}...", bootstyle="inverse-info")
+        self.barra_stato.config(text=f" 🔍 Recupero dati per {percorso_relativo_server}...", bootstyle="inverse-info")
         
         # Svuotiamo i pannelli vecchi
         self.testo_metadati_server.config(state=tk.NORMAL)
@@ -699,7 +703,7 @@ class PannelloGalleria(ttk.Frame):
         richiedi_metadati_immagine(token, nome_file, tipo_corrente, self._ricevi_metadati_server)
         
         # 2. Chiediamo la foto fisica
-        scarica_immagine_dal_server(token, nome_file, self._ricevi_immagine_fisica)
+        scarica_immagine_dal_server(token, percorso_relativo_server, self._ricevi_immagine_fisica)
     def _ricevi_metadati_server(self, successo, dati_restituiti):
         self.after(0, lambda: self._mostra_dettagli_metadati(successo, dati_restituiti))
 
@@ -726,7 +730,7 @@ class PannelloGalleria(ttk.Frame):
 
     def _mostra_miniatura_server(self, successo, img_data):
         if successo:
-            img_data.thumbnail((120, 120), Image.Resampling.LANCZOS)
+            img_data.thumbnail((250, 250), Image.Resampling.LANCZOS)
             photo = ImageTk.PhotoImage(img_data)
             self.lbl_miniatura_server.config(image=photo, text="")
             self.lbl_miniatura_server.image = photo 
@@ -768,6 +772,32 @@ class PannelloGalleria(ttk.Frame):
             return photo_image
         except Exception as e:
             return None
+        
+    def _gestisci_cambio_tab(self, event):
+        """
+        Controlla quale scheda è attiva e blocca/sblocca la steganografia.
+        """
+        # Identifichiamo l'indice della scheda selezionata
+        indice_tab = self.notebook.index(self.notebook.select())
+        
+        # 0 = Immagini Locali, 1 = Immagini dal Server
+        if indice_tab == 1:
+            # Blocchiamo i widget
+            self.txt_messaggio_segreto.config(state=tk.DISABLED)
+            self.btn_nascondi.config(state=tk.DISABLED)
+            self.btn_estrai.config(state=tk.DISABLED)
+            
+            # Notifichiamo l'utente tramite la barra di stato
+            self.barra_stato.config(
+                text=" 🔒 Steganografia non disponibile per le immagini del server.",
+                bootstyle="inverse-warning"
+            )
+        else:
+            # Sblocchiamo tutto quando torniamo nel tab locale
+            self.txt_messaggio_segreto.config(state=tk.NORMAL)
+            self.btn_nascondi.config(state=tk.NORMAL)
+            self.btn_estrai.config(state=tk.NORMAL)
+            self._ripristina_barra_stato()
         
     def mostra_info(self):
         titolo = "Informazioni - Galleria Immagini"

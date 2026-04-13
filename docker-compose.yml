@@ -1,9 +1,7 @@
 version: '3.8'
 
 services:
-  # ---------------------------------------------------------
-  # 1. IL DATABASE (Livello Stateful)
-  # ---------------------------------------------------------
+  # 1. IL DATABASE
   mongodb:
     image: mongo:latest
     container_name: database_mongo
@@ -13,9 +11,7 @@ services:
       # Fondamentale: salviamo i dati del DB sul tuo disco per non perderli ai riavvii
       - dati_mongo:/data/db
 
-  # ---------------------------------------------------------
-  # 2. IL SERVER API (Livello Stateless)
-  # ---------------------------------------------------------
+  # 2. IL SERVER API
   server_principale:
     build: ./Server_API
     container_name: api_centrale
@@ -25,11 +21,12 @@ services:
       # Programmazione difensiva: accendi prima il DB, poi il server Python
       - mongodb
     environment:
-      # Sicurezza: passiamo le variabili d'ambiente al container Python
-      - SECRET_KEY=segreto_devops_123
-      # DNS Interno: Diciamo al server Python di cercare Mongo non su 'localhost', ma sul nome del container 'mongodb'
-      - MONGO_URI=mongodb://mongodb:27017/
+      - SECRET_KEY=${MY_APP_SECRET_KEY}
+      - MONGO_URI=${MY_MONGO_URI}
 
 volumes:
   # Dichiariamo il volume persistente per il database
   dati_mongo:
+
+#Avvio
+#docker-compose up --build

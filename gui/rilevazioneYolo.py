@@ -1,13 +1,35 @@
 import threading
 import requests
-from ultralytics import YOLO
 import io
+import os
 from PIL import Image
 
-try:
-    modello_yolo_globale = YOLO("yolov8n.pt")
-except Exception as e:
-    modello_yolo_globale = None
+modello_yolo_globale = None
+errore_modello_yolo = None
+_lock_modello = threading.Lock()
+
+
+def _carica_modello_yolo_se_necessario():
+    global modello_yolo_globale, errore_modello_yolo
+    if modello_yolo_globale is not None:
+        return modello_yolo_globale
+
+    with _lock_modello:
+        if modello_yolo_globale is not None:
+            return modello_yolo_globale
+        if errore_modello_yolo is not None:
+            return None
+
+        try:
+            from ultralytics import YOLO
+
+            percorso_modello = os.path.join(os.path.dirname(__file__), "yolov8n.pt")
+            modello_yolo_globale = YOLO(percorso_modello)
+        except Exception as e:
+            errore_modello_yolo = str(e)
+            modello_yolo_globale = None
+
+    return modello_yolo_globale
 
 sessione_http = requests.Session()
 
@@ -29,18 +51,20 @@ def traduci_etichetta_yolo(etichetta_inglese):
 def esegui_rilevamento_yolo_locale(image_path, callback_aggiornamento_ui):
     def worker():
         try:
-            if not modello_yolo_globale:
-                callback_aggiornamento_ui("❌ Errore Modello YOLO.", "inverse-danger", None)
+            modello = _carica_modello_yolo_se_necessario()
+            if not modello:
+                dettaglio = f": {errore_modello_yolo}" if errore_modello_yolo else ""
+                callback_aggiornamento_ui(f"❌ Errore Modello YOLO{dettaglio}", "inverse-danger", None)
                 return
                 
-            risultati = modello_yolo_globale(image_path)
+            risultati = modello(image_path)
             
             oggetti_trovati = []
             for risultato in risultati:
                 for box in risultato.boxes:
                     class_id = int(box.cls[0])
                     # TRADUCIAMO SUBITO IN ITALIANO
-                    nome_italiano = traduci_etichetta_yolo(modello_yolo_globale.names[class_id])
+                    nome_italiano = traduci_etichetta_yolo(modello.names[class_id])
                     oggetti_trovati.append(nome_italiano)
             
             if not oggetti_trovati:

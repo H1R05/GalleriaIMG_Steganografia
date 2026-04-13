@@ -8,12 +8,21 @@ from datetime import datetime
 app = Flask(__name__)
 
 # --- CONFIGURAZIONE ---
-SECRET_KEY = os.environ.get("SECRET_KEY", "segreto_devops_123") 
+SECRET_KEY = os.environ.get("SECRET_KEY") 
 CARTELLA_IMMAGINI = "./immagini_server"
 os.makedirs(CARTELLA_IMMAGINI, exist_ok=True)
 
+TIPO_TO_FOLDER = {
+    "aereo": "aerei",
+    "auto": "auto",
+    "persona": "persone",
+    "treno": "treni",
+    "altro": "altro",
+}
+ESTENSIONI_IMMAGINE = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"}
+
 # --- CONNESSIONE AL DATABASE CLOUD/LOCALE ---
-MONGO_URI = os.environ.get("MONGO_URI", "mongodb://mongodb:27017/") 
+MONGO_URI = os.environ.get("MONGO_URI") 
 try:
     client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
     db = client['galleria_cloud']
@@ -39,6 +48,19 @@ def token_richiesto(f):
             return jsonify({'message': 'JWT non valido'}), 401
         return f(username, *args, **kwargs)
     return decoratore
+
+
+def _lista_immagini_relative(directory_base):
+    immagini = []
+    for root, _, files in os.walk(directory_base):
+        for nome_file in files:
+            estensione = os.path.splitext(nome_file)[1].lower()
+            if estensione not in ESTENSIONI_IMMAGINE:
+                continue
+            percorso_assoluto = os.path.join(root, nome_file)
+            percorso_relativo = os.path.relpath(percorso_assoluto, CARTELLA_IMMAGINI)
+            immagini.append(percorso_relativo.replace("\\", "/"))
+    return sorted(immagini, key=str.lower)
 
 # =========================================================
 # 1. JWT GENERATOR (Pagina 5 del PDF)
@@ -74,12 +96,21 @@ def get_images(username_richiedente):
             "tipoImmagine": tipo_immagine
         })
     
-    # Restituisce le immagini che contengono la parola cercata
-    tutti_i_file = [f for f in os.listdir(CARTELLA_IMMAGINI) if os.path.isfile(os.path.join(CARTELLA_IMMAGINI, f))]
+    # Supporta sia file nella root che file in sottocartelle.
+    tutte_le_immagini = _lista_immagini_relative(CARTELLA_IMMAGINI)
+
     if tipo_immagine:
-        file_filtrati = [f for f in tutti_i_file if tipo_immagine.lower() in f.lower()]
+        tipo_norm = tipo_immagine.lower().strip()
+        cartella_tipo = TIPO_TO_FOLDER.get(tipo_norm)
+
+        if cartella_tipo:
+            prefisso = f"{cartella_tipo}/"
+            file_filtrati = [f for f in tutte_le_immagini if f.lower().startswith(prefisso)]
+        else:
+            # Fallback per compatibilita: filtro testuale sul path relativo
+            file_filtrati = [f for f in tutte_le_immagini if tipo_norm in f.lower()]
     else:
-        file_filtrati = tutti_i_file
+        file_filtrati = tutte_le_immagini
 
     return jsonify({"images": file_filtrati}), 200
 
@@ -103,11 +134,14 @@ def get_metadata(username_richiedente):
 # =========================================================
 # 4. DOWNLOAD IMMAGINE FISICA (Per evitare "Immagine non disponibile")
 # =========================================================
-@app.route('/api/images/download/<nome_file>', methods=['GET'])
+@app.route('/api/images/download/<path:nome_file>', methods=['GET'])
 @token_richiesto
 def scarica_immagine_fisica(username_richiedente, nome_file):
     try:
-        return send_from_directory(CARTELLA_IMMAGINI, nome_file)
+        percorso_norm = os.path.normpath(nome_file)
+        if percorso_norm.startswith(".."):
+            return jsonify({"error": "Percorso non valido"}), 400
+        return send_from_directory(CARTELLA_IMMAGINI, percorso_norm)
     except Exception as e:
         return jsonify({"error": "File non trovato sul server"}), 404
 
