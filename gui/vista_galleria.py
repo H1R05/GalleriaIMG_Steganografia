@@ -630,7 +630,10 @@ class PannelloGalleria(ttk.Frame):
         self.barra_stato.config(text=f" {messaggio_esito}", bootstyle=bootstyle_stato)
         
         if etichetta_dominante:
-            messagebox.showinfo("Rilevamento Completato", f"Oggetto principale: {etichetta_dominante}.\n\nOra il sistema cercherà immagini simili sul server.")
+            # 🎯 Invece di mostrare un messagebox bloccante, aggiorniamo direttamente la UI e avanziamo
+            self.barra_stato.config(text=f" ✅ Rilevato: {etichetta_dominante}. Ricerca immagini simili...", bootstyle="inverse-success")
+            # Passiamo al tab server per mostrare i risultati in tempo reale
+            self.notebook.select(1)  # Passa al tab server
             self.avvia_fetch_immagini(termine_ricerca=etichetta_dominante)
         elif "Errore" in messaggio_esito:
             messagebox.showerror("Errore IA", messaggio_esito)
@@ -648,9 +651,17 @@ class PannelloGalleria(ttk.Frame):
         # --- LA MODIFICA È QUI: Salviamo in memoria il tipo di ricerca attuale ---
         self.tipo_ricerca_attuale = termine_ricerca if termine_ricerca else "altro"
 
-        # Prepariamo la grafica
+        # Prepariamo la grafica - PULISCIAMO TUTTO
         self.lista_immagini_server.delete(0, tk.END)
         self.lista_immagini_server.insert(tk.END, "In attesa di risposta dal server...")
+        
+        # Puliamo la vecchia miniatura e i metadati
+        self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
+        self.lbl_miniatura_server.image = None
+        self.testo_metadati_server.config(state=tk.NORMAL)
+        self.testo_metadati_server.delete(1.0, tk.END)
+        self.testo_metadati_server.config(state=tk.DISABLED)
+        
         self.barra_stato.config(text=" 📡 Richiesta dati al server...", bootstyle="inverse-info")
 
         richiedi_immagini_server(token, termine_ricerca, self._ricevi_lista_server)
