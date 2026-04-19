@@ -1,26 +1,31 @@
-# Galleria Immagini con Steganografia
+# Galleria Immagini con IA e Steganografia
 
-Applicazione desktop Python con backend Flask e MongoDB per:
+![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
+![Flask](https://img.shields.io/badge/flask-%23000.svg?style=flat&logo=flask&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-%234ea94b.svg?style=flat&logo=mongodb&logoColor=white)
+![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=flat&logo=docker&logoColor=white)
 
-- gestione immagini locali (griglia, presentazione, ricerca, filtri)
-- autenticazione JWT verso API
-- consultazione immagini e metadati dal server
-- rilevamento oggetti con YOLO locale
-- steganografia LSB su immagini PNG
+Applicazione desktop sviluppata in Python che integra un'interfaccia grafica intuitiva con un backend a microservizi. 
+Il progetto combina la gestione locale dei file con servizi Cloud per il riconoscimento oggetti tramite Intelligenza Artificiale e l'occultamento di dati tramite Steganografia.
+
+## ✨ Funzionalità Principali
+
+- 📁 **Gestione Locale**: Esplorazione cartelle, griglia immagini, filtri per formato (JPEG, PNG, GIF, BMP) e modalità presentazione.
+- 🔐 **Sicurezza**: Autenticazione JWT verso le API Flask.
+- 🕵️ **Steganografia (LSB)**: Occultamento ed estrazione di messaggi segreti all'interno dei pixel delle immagini PNG.
+- 🤖 **Intelligenza Artificiale**: Rilevamento oggetti locale (Object Detection) tramite modello **YOLOv8** pre-addestrato.
+- ☁️ **Sincronizzazione Cloud**: Download di immagini simili e consultazione metadati dal server MongoDB.
 
 ## Anteprima
-
 <p align="center">
-  <p align="center">
-    <img src="./screenshots/ScreenGUI1.png" width="50%">
-    <img src="./screenshots/ScreenGUI2.png" width="50%">
-  </p>
+  <img src="./screenshots/ScreenGUI1.png" width="48%" margin-right="10px">
+  <img src="./screenshots/ScreenGUI2.png" width="48%">
 </p>
 
 
 ## Architettura del progetto
 
-- `gui/`: interfaccia desktop Tkinter + ttkbootstrap
+- `Gui/`: interfaccia desktop Tkinter + ttkbootstrap
 - `Server_API/`: API Flask con JWT e MongoDB
 - `Server_API/immagini_server/`: immagini servite dalla API
 - `docker-compose.yml`: avvio di MongoDB + API
@@ -32,6 +37,7 @@ Applicazione desktop Python con backend Flask e MongoDB per:
 - Python 3.11+ (consigliato)
 - pip aggiornato
 - Docker Desktop (o Docker Engine + Docker Compose)
+- MongoDB Compass 
 
 ### 2. Dipendenze Python
 
@@ -40,10 +46,6 @@ Il progetto usa due requirements ufficiali:
 - `gui/requirements.txt`
 - `Server_API/requirements.txt`
 
-In base agli import reali della GUI, servono anche:
-
-- `requests`
-- `ultralytics` (per il rilevamento YOLO locale)
 
 ## Setup rapido per un nuovo utente
 
@@ -83,7 +85,6 @@ source .venv/bin/activate
 pip install --upgrade pip
 pip install -r gui/requirements.txt
 pip install -r Server_API/requirements.txt
-pip install requests ultralytics
 ```
 
 Nota: il file del modello `gui/yolov8n.pt` deve essere presente (nel repository c'e' gia').
@@ -127,7 +128,7 @@ docker compose down
 
 L'applicazione login e metadati leggono da MongoDB:
 
-- database: `galleria_cloud`
+- database: `galleria_img`
 - collection utenti: `utenti`
 - collection metadati: `metadati`
 - collection log ricerche: `log_ricerche`
@@ -196,12 +197,6 @@ python gui/main.py
 - `GET /api/metadata?nomeImmagine=...&tipo=...`
 - `GET /api/images/download/<path:nome_file>`
 
-Tutte le API sotto `/api/*` richiedono header:
-
-```http
-Authorization: Bearer <jwt>
-```
-
 ## Troubleshooting
 
 ### Errore login o server non raggiungibile
@@ -232,4 +227,4 @@ Authorization: Bearer <jwt>
 
 ## Autore
 
-Samuele - https://github.com/H1R05
+Samu - https://github.com/H1R05
