@@ -2,6 +2,11 @@
 .venv/
 venv/
 env/
+/Lib/
+/Scripts/
+pyvenv.cfg
+__pycache__/
+*.pt
 
 # 2. File "spazzatura" compilati da Python automaticamente
 __pycache__/
