@@ -630,7 +630,10 @@ class PannelloGalleria(ttk.Frame):
         self.barra_stato.config(text=f" {messaggio_esito}", bootstyle=bootstyle_stato)
         
         if etichetta_dominante:
-            messagebox.showinfo("Rilevamento Completato", f"Oggetto principale: {etichetta_dominante}.\n\nOra il sistema cercherà immagini simili sul server.")
+            # 🎯 Invece di mostrare un messagebox bloccante, aggiorniamo direttamente la UI e avanziamo
+            self.barra_stato.config(text=f" ✅ Rilevato: {etichetta_dominante}. Ricerca immagini simili...", bootstyle="inverse-success")
+            # Passiamo al tab server per mostrare i risultati in tempo reale
+            self.notebook.select(1)  # Passa al tab server
             self.avvia_fetch_immagini(termine_ricerca=etichetta_dominante)
         elif "Errore" in messaggio_esito:
             messagebox.showerror("Errore IA", messaggio_esito)
@@ -648,9 +651,17 @@ class PannelloGalleria(ttk.Frame):
         # --- LA MODIFICA È QUI: Salviamo in memoria il tipo di ricerca attuale ---
         self.tipo_ricerca_attuale = termine_ricerca if termine_ricerca else "altro"
 
-        # Prepariamo la grafica
+        # Prepariamo la grafica - PULISCIAMO TUTTO
         self.lista_immagini_server.delete(0, tk.END)
         self.lista_immagini_server.insert(tk.END, "In attesa di risposta dal server...")
+        
+        # Puliamo la vecchia miniatura e i metadati
+        self.lbl_miniatura_server.config(image='', text="Seleziona un file\nper visualizzarlo")
+        self.lbl_miniatura_server.image = None
+        self.testo_metadati_server.config(state=tk.NORMAL)
+        self.testo_metadati_server.delete(1.0, tk.END)
+        self.testo_metadati_server.config(state=tk.DISABLED)
+        
         self.barra_stato.config(text=" 📡 Richiesta dati al server...", bootstyle="inverse-info")
 
         richiedi_immagini_server(token, termine_ricerca, self._ricevi_lista_server)
@@ -802,13 +813,14 @@ class PannelloGalleria(ttk.Frame):
     def mostra_info(self):
         titolo = "Informazioni - Galleria Immagini"
         messaggio = "Galleria Immagini\n\n"
-        messaggio += "Benvenuto! Ecco cosa puoi fare con questa galleria:\n\n"
-        messaggio += "APRIRE IMMAGINI:\nUsa 'Apri Immagine' o 'Apri Cartella' dal menu File o dalla barra degli strumenti per caricare le tue foto.\n\n"
-        messaggio += "VISUALIZZARE:\nScegli tra 'Griglia' per vedere le miniature o 'Presentazione' per vedere un'immagine ingrandita (menu Visualizza). Scorri tra le immagini usando i tasti freccia sinistra e destra.\n\n"
-        messaggio += "ORGANIZZARE:\nHai aperto una cartella? Usa il campo 'Cerca' nella toolbar per trovare immagini per nome. Puoi anche filtrare i tipi di file (JPEG, PNG, ecc.) usando gli interruttori colorati in basso.\n\n"
-        messaggio += "SALVARE:\nSeleziona un'immagine e vai su 'File > Salva Immagine Come...' per salvarla, anche in un formato diverso se necessario.\n\n"
-        messaggio += "NASCONDERE TESTO (Steganografia):\nVuoi nascondere un messaggio segreto? Attiva la 'Modalità Steganografia', seleziona un'immagine (meglio PNG!), scrivi il testo nell'area apposita, clicca 'Nascondi' e salva il nuovo file PNG generato.\n\n"
-        messaggio += "ESTRARRE TESTO NASCOSTO:\nApri l'immagine che contiene il messaggio, attiva la 'Modalità Steganografia' e clicca 'Estrai'. Il testo segreto apparirà nell'area inferiore.\n\n"
+        messaggio += "Funzionalita disponibili:\n\n"
+        messaggio += "1) ACCESSO E MODALITA:\nLogin con credenziali per abilitare le API server oppure accesso ospite in modalita offline.\n\n"
+        messaggio += "2) GESTIONE IMMAGINI LOCALI:\nApri una singola immagine o una cartella, visualizza in griglia o presentazione, naviga con frecce precedente/successivo e salva in diversi formati.\n\n"
+        messaggio += "3) RICERCA E FILTRI:\nCerca per nome file dalla toolbar e filtra per formato (JPEG, PNG, GIF, BMP).\n\n"
+        messaggio += "4) STEGANOGRAFIA LSB:\nNascondi un messaggio in un'immagine e salva il risultato in PNG; estrai testo segreto da immagini gia steganografate.\n\n"
+        messaggio += "5) RILEVAMENTO YOLO LOCALE:\nAnalizza l'immagine selezionata con IA per identificare la categoria dominante.\n\n"
+        messaggio += "6) INTEGRAZIONE SERVER API:\nDopo il rilevamento, l'app ricerca immagini simili sul server, mostra lista risultati, metadati e miniatura scaricata via API.\n\n"
+        messaggio += "7) STATO OPERATIVO:\nLa barra di stato in basso mostra avanzamento, errori e conferme delle operazioni principali.\n\n"
 
         formati_supportati = ', '.join(sorted(self.SUPPORTED_EXT_MAP.keys()))
         messaggio += f"Formati Supportati: {formati_supportati}\n"
