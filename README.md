@@ -139,10 +139,10 @@ Esempio documento metadati (collection `metadati`):
 
 ```json
 {
-	"nomeImmagine": "foto1.jpg",
+	"nomeImmagine": "auto_1.jpg",
 	"tipo": "auto",
-	"descrizione": "Auto rossa",
-	"autore": "Mario"
+	"marca": "BMW",
+	"modello": "Serie 3 Berlina"
 }
 ```
 
