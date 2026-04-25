@@ -146,7 +146,7 @@ Esempio documento metadati (collection `metadati`):
 }
 ```
 
-Nota: per la ricerca metadati lato API i campi chiave sono `nomeImmagine` e `tipo`.
+Nota: per la ricerca metadati lato API i campi chiave sono `nomeImmagine` e `tipo`, inoltre nel progetto e' presente una cartella chiamata "/dati_json_mongodb/" con all'interno i dati json completi da importare su MongoDB Compass (utenti e metadati) per avere l'applicazione funzionante al 100%.
 
 ## Avvio GUI desktop
 
