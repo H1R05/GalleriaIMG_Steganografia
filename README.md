@@ -52,8 +52,8 @@ Il progetto usa due requirements ufficiali:
 ### 1. Clona il repository
 
 ```bash
-git clone https://github.com/H1R05/GalleriaIMG_Steganografia.git
-cd GalleriaIMG_Steganografia
+git clone https://github.com/H1R05/GalleriaIMG_2.0.git
+cd GalleriaIMG_2.0
 ```
 
 ### 2. Crea e attiva un virtual environment
